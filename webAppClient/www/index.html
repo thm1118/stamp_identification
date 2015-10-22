@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/cropper.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <script type="text/javascript" charset="utf-8" src="cordova.js"></script>
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/cropper.js"></script>
+
+
+    <title>stamp identification</title>
+
+    <script type="text/javascript" charset="utf-8">
+        function loadImage() {
+            navigator.camera.getPicture(onLoadImageSuccess, onLoadImageFail, {destinationType: Camera.DestinationType.DATA_URL});
+        }
+
+        function onLoadImageSuccess(imageURI) {
+            var src = "data:image/jpeg;base64," + imageURI;
+            $("#getImage").attr("src", src);
+            $("#getImage").show();
+            $('.img-container > img').cropper({
+//                aspectRatio: 16 / 9,
+                crop: function(data) {
+                    // Output the result data for cropping image.
+                }
+            });
+        }
+
+        function onLoadImageFail(message) {
+            navigator.notification.alert("拍照失败，原因：" + message, null, "警告");
+        }
+        function loadImageLocal() {
+
+            navigator.camera.getPicture(onLoadImageUploadSuccess, onLoadImageFail, {
+                destinationType: Camera.DestinationType.FILE_URI,
+                sourceType: Camera.PictureSourceType.PHOTOLIBRARY
+            });
+        }
+
+        function onLoadImageLocalSuccess(imageURI) {
+            $("#getImageLocal").attr("src", imageURI);
+            $("#getImageLocal").show();
+        }
+        function loadImageUpload() {
+
+            navigator.camera.getPicture(onLoadImageUploadSuccess, onLoadImageFail, {
+                destinationType: Camera.DestinationType.FILE_URI
+            });
+        }
+
+        function onLoadImageUploadSuccess(imageURI) {
+
+
+            var options = new FileUploadOptions();
+            options.fileKey = "file";
+            options.fileName = imageURI.substr(imageURI.lastIndexOf('/') + 1);
+            options.mimeType = "image/jpeg";
+            alert(options.mimeType);
+            var ft = new FileTransfer();
+
+            ft.onprogress = function (progressEvt) {
+                if (progressEvt.lengthComputable) {
+                    navigator.notification.progressValue(Math.round(( progressEvt.loaded / progressEvt.total ) * 100));
+                }
+            };
+            navigator.notification.progressStart("tip", "uploading progress");
+            ft.upload(imageURI, encodeURI('http://192.168.100.37:8080/upload'), function (r) {
+                navigator.notification.progressStop();
+                $("#getImageUpload").attr("src", imageURI);
+                $("#getImageUpload").show();
+//                navigator.console.log(result);
+//                console.log("Code = " + r.responseCode.toString()+"\n");
+//                console.log("Response = " + r.response.toString()+"\n");
+//                console.log("Sent = " + r.bytesSent.toString()+"\n");
+                navigator.notification.alert(r.response.toString(), null, "result");
+            }, null, options);
+        }
+
+        function myCroperImage(){
+            var data = $(this).data(), $image = $('.img-container > img'),
+                    $target,
+                    result;
+
+            if (!$image.data('cropper')) {
+                return;
+            }
+            data = $.extend({}, data); // Clone a new one
+
+            if (typeof data.target !== 'undefined') {
+                $target = $(data.target);
+
+//                if (typeof data.option === 'undefined') {
+//                    try {
+//                        data.option = JSON.parse($target.val());
+//                    } catch (e) {
+//                        console.log(e.message);
+//                    }
+//                }
+            }
+
+            result = $image.cropper('getCroppedCanvas', {});
+//            var imageURI = result.toDataURL();
+//            alert(imageURI.substr(imageURI.lastIndexOf('/') + 1));
+
+            $('#getCroppedCanvasModal').modal().find('.modal-body').html(result);
+
+            if ($.isPlainObject(result) && $target) {
+                try {
+                    $target.val(JSON.stringify(result));
+                } catch (e) {
+                    console.log(e.message);
+                }
+            }
+        }
+
+        function uploadCroperImage(){
+//            var imgCanvas =$($('#getCroppedCanvasModal').modal().find('.modal-body').html())[0];
+            var $image = $('.img-container > img');
+            var imgCanvas = $image.cropper('getCroppedCanvas', {});
+            var imageURI = imgCanvas.toDataURL("image/jpeg", 0.5);
+
+
+            var options = new FileUploadOptions();
+            options.fileKey = "file";
+            options.mimeType = "image/jpeg";
+//            alert(options.mimeType);
+            var ft = new FileTransfer();
+
+            ft.onprogress = function (progressEvt) {
+                if (progressEvt.lengthComputable) {
+                    navigator.notification.progressValue(Math.round(( progressEvt.loaded / progressEvt.total ) * 100));
+                }
+            };
+            navigator.notification.progressStart("tips", "uploading progress");
+            ft.upload(imageURI, encodeURI('http://192.168.100.41:8080/upload'), function (r) {
+                navigator.notification.progressStop();
+                $("#getImageUpload").attr("src", imageURI);
+                $("#getImageUpload").show();
+//                navigator.console.log(result);
+//                console.log("Code = " + r.responseCode.toString()+"\n");
+//                console.log("Response = " + r.response.toString()+"\n");
+//                console.log("Sent = " + r.bytesSent.toString()+"\n");
+                navigator.notification.alert(r.response.toString(), null, "result");
+            }, null, options);
+
+        }
+
+    </script>
+</head>
+<body>
+<header class="navbar navbar-inverse navbar-static-top docs-header" id="top">
+    <div class="container">
+        <div class="navbar-header">
+            <button class="navbar-toggle" data-target="#navbar-collapse-1" data-toggle="collapse" type="button">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="javascript:void(0);">stamp identification</a>
+        </div>
+        <nav class="collapse navbar-collapse" id="navbar-collapse-1" role="navigation">
+            <p class="navbar-text">my stamps</p>
+            <!--<ul class="nav navbar-nav navbar-right">-->
+                <!--<li><a href="http://github.com/fengyuanchen/cropper/blob/master/README.md">Docs</a></li>-->
+                <!--<li><a href="http://github.com/fengyuanchen/cropper">Github</a></li>-->
+                <!--<li><a href="http://chenfengyuan.com">About</a></li>-->
+            <!--</ul>-->
+        </nav>
+    </div>
+</header>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 docs-buttons">
+            <!-- <h3 class="page-header">Toolbar:</h3> -->
+            <div class="btn-group">
+                <button class="btn btn-primary btn-lg"  onclick="loadImage();"  type="button" title="拍照">
+                    <span class="docs-tooltip" >
+                      <span class="icon-off text-right">camera</span>
+                    </span>
+                </button>
+
+                <button class="btn btn-primary btn-lg"  onclick="myCroperImage();"  type="button" title="上传">
+                    <span class="docs-tooltip" >
+                      <span class="icon-ok text-right">preview crop photo</span>
+                    </span>
+                </button>
+                <!--<button type="button" class="btn btn-lg btn-primary center-block" value="拍照" onclick="loadImage();"/>-->
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <!-- <h3 class="page-header">Demo:</h3> -->
+            <div class="img-container">
+                <img src="" id="getImage"  style="display: none; " alt="Picture"/>
+            </div>
+        </div>
+        <!-- Show the cropped image in modal -->
+        <div class="modal fade docs-cropped" id="getCroppedCanvasModal" aria-hidden="true" aria-labelledby="getCroppedCanvasTitle" role="dialog" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close" data-dismiss="modal" type="button" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="getCroppedCanvasTitle">preview crop photo</h4>
+                    </div>
+                    <button class="btn btn-lg btn-success center-block"  onclick="uploadCroperImage();"  type="button" title="上传">
+                        <span class="docs-tooltip" >
+                          <span class="icon-ok text-right">commit</span>
+                        </span>
+                    </button>
+                    <div class="modal-body"></div>
+                    <!-- <div class="modal-footer">
+                      <button class="btn btn-primary" data-dismiss="modal" type="button">Close</button>
+                    </div> -->
+                </div>
+            </div>
+        </div><!-- /.modal -->
+    </div>
+<!--<p>-->
+    <!--<input type="button" value="拍照" onclick="loadImage();"/>-->
+<!--<div class="container">-->
+    <!--&lt;!&ndash;<img src="" id="getImage" style="width: 240px;height: 240px;"/>&ndash;&gt;-->
+    <!--</div>-->
+<!--</p>-->
+
+<p>
+    <input type="button" value="upload from photo lib" onclick="loadImageLocal();"  class="button-block button-main"/>
+    <img src="" id="getImageLocal" style="display: none;width: 120px;height: 120px;"/>
+</p>
+
+<p>
+    <input type="button" value="take photo upload" onclick="loadImageUpload();" class="button-block button-main"/>
+    <img src="" id="getImageUpload" style="display: none;width: 120px;height: 120px;"/>
+</p>
+    </div>
+</body>
+</html>
